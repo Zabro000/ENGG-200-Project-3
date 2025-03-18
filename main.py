@@ -97,7 +97,7 @@ from time import sleep
 # Initialize input with internal pull down resistor on pin 10
 # When using internal pull down resistor on Pico, pin will have logic level 1 (3.3 V) when button pushed and 0 when released
 # FOr internal pull up resistor, pin will have logic level 0 when button pushed and 1 (3.3 V) when released
-
+#ssss
 button = Pin(10, Pin.IN, Pin.PULL_DOWN)
 
 # Initialize on board LED
@@ -122,6 +122,25 @@ while True:
             print("No Payload")
         
         button = []
+
+
+from machine import ADC
+from time import sleep
+
+# IR Photodiode on analog pin 28
+# NOTE: It may help to use Thonny's built in plotter to see how the values change. Find it under 'View'
+
+ir = ADC(28)
+# You can also use the IR Photodiode as a digital input.
+#asasdas
+
+
+while True:
+    print(ir.read_u16())
+    
+    sleep(0.1)
+
+
 
 
 
