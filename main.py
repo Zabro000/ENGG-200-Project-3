@@ -70,7 +70,6 @@ led = Pin('LED', Pin.OUT)
 
 reed_average = []
 while True:
-
     if reed_switch.value() == 1:  # Check if the magnet is near
         led.value(1)# Turn on the LED
 
@@ -78,12 +77,54 @@ while True:
     else:
         led.value(0)  # Turn off the LED
        
-    
     print(reed_switch.value())
+
+    #Take average 
+    reed_average.append(reed_switch.value())
+    if len(reed_average) == 5:
+        if sum(reed_average) == 5:
+            print("Payload detected")
+            magnet = 1
+        
+        reed_average = []
+
+    
     sleep(0.1)  # Short delay
 
+from machine import Pin
+from time import sleep
+
+# Initialize input with internal pull down resistor on pin 10
+# When using internal pull down resistor on Pico, pin will have logic level 1 (3.3 V) when button pushed and 0 when released
+# FOr internal pull up resistor, pin will have logic level 0 when button pushed and 1 (3.3 V) when released
+
+button = Pin(10, Pin.IN, Pin.PULL_DOWN)
+
+# Initialize on board LED
+led = Pin('LED', Pin.OUT)
+
+while True:
+    
+    # if button pushed turn on LED
+    if button.value() == 1:
+        print("Button Pressed!")
+        led.on()
+    else:
+        led.off()
+    
+    sleep(0.1) # Short delay
+
+    button = []
+    if len(button) == 5:
+        if sum(button) == 5:
+            print("Payload on")
+        else: 
+            print("No Payload")
+        
+        button = []
 
 
 
 if __name__ == "__main__":
+
     main()
