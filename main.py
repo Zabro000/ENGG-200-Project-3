@@ -34,7 +34,39 @@ button = Pin(10, Pin.IN, Pin.PULL_DOWN)
 led = Pin('LED', Pin.OUT)
 but = []
 
+from machine import I2C, Pin 
+from imu import MPU6050 # Save this library on Pico
+import time
+
+# Pins according the schematic https://heltec.org/project/wifi-kit-32/
+# Replace with proper scl and sda pins
+i2c = I2C(1, scl=Pin(3), sda=Pin(2))
+
+
+'''
+# Accelerometer / Gyroscope
+imu = MPU6050(i2c)
+accel_x = []
+accel_y = []
+accel_z = []
+gyro_x = []
+gyro_y = []
+gyro_z = []
+temp = []
+'''
+
+from machine import ADC
+from time import sleep
+
+# IR Photodiode on analog pin 28
+# NOTE: It may help to use Thonny's built in plotter to see how the values change. Find it under 'View'
+
+ir = ADC(28)
+# You can also use the IR Photodiode as a digital input.
+ir_sensor = []
+
 while True:
+    # Front Sensor
     try:
         distance = sensor.distance_cm()
         print('Distance:', distance, 'cm')
@@ -50,6 +82,7 @@ while True:
         print('ERROR getting distance:', ex)
         break
 
+    #Right Sensor
     try:
         distance_r = sensor_r.distance_cm()
         print('Distance:', distance_r, 'cm')
@@ -64,6 +97,7 @@ while True:
         print('ERROR getting distance:', ex)
         break
 
+    #Left Sensor
     try:
         distance_l = sensor_l.distance_cm()
         print('Distance:', distance_l, 'cm')
@@ -78,6 +112,7 @@ while True:
         print('ERROR getting distance:', ex)
         break
 
+    #Reed Switch
     if reed_switch.value() == 1:  # Check if the magnet is near
         led.value(1)# Turn on the LED
         
@@ -99,6 +134,7 @@ while True:
     
     sleep(0.1)  # Short delay
 
+    #Limit Switch
     # if button pushed turn on LED
     if button.value() == 1:
         print("Button Pressed!")
@@ -116,27 +152,36 @@ while True:
     
     sleep(0.1) # Short delay
 
-'''
-from machine import ADC
-from time import sleep
+    '''
+    # MPU
+    accel_x.append(imu.accel.x)
+    accel_y.append(imu.accel.y)
+    accel_z.append(imu.accel.z)
 
-# IR Photodiode on analog pin 28
-# NOTE: It may help to use Thonny's built in plotter to see how the values change. Find it under 'View'
+    gyro_x.append(imu.gyro.x)
+    gyro_y.append(imu.gyro.y)
+    gyro_z.append(imu.gyro.z)
 
-ir = ADC(28)
-# You can also use the IR Photodiode as a digital input.
-#asasdas
+    temp.append(imu.temperature)
 
-
-while True:
+    time.sleep(.1)
+    '''
+    #IR sensor
     print(ir.read_u16())
+
+    ir_sensor.append(ir.read_u16())
+    if len(ir_sensor) == 5:
+        if sum(ir_sensor) < 50000:
+            print("Dropoff Detected")
+        else:
+            print("Dropoff not detected")
+
+        ir_sensor = []
     
     sleep(0.1)
-'''
 
 
 
 
-if __name__ == "__main__":
+#asasdas
 
-    main()
