@@ -65,6 +65,10 @@ ir = ADC(28)
 # You can also use the IR Photodiode as a digital input.
 ir_sensor = []
 
+#Main Code
+#Turn Car around and find the wall behind 
+
+
 while True:
     # Front Sensor
     try:
@@ -73,8 +77,8 @@ while True:
         sleep(0.1) # sensor doesn't work well without delay
         average_front.append(distance)
 
-        if len(average_front) == 10:
-            front_dis = sum(average_front) / 10
+        if len(average_front) == 5:
+            front_dis = sum(average_front) / 5
             print(front_dis, "average front")
             average_front = []
 
@@ -89,8 +93,8 @@ while True:
         sleep(0.1) # sensor doesn't work well without delay
         average_right.append(distance_r)
 
-        if len(average_right) == 10:
-            right_dis = sum(average_right) / 10
+        if len(average_right) == 5:
+            right_dis = sum(average_right) / 5
             print(right_dis, "average right")
 
     except OSError as ex:
@@ -104,8 +108,8 @@ while True:
         sleep(0.1) # sensor doesn't work well without delay
         average_left.append(distance_l)
 
-        if len(average_left) == 10:
-            left_dis = sum(average_left) / 10
+        if len(average_left) == 5:
+            left_dis = sum(average_left) / 5
             print(left_dis, "average left")
 
     except OSError as ex:
