@@ -15,21 +15,8 @@ stepper_motor.reset()
 
 while True:
     #Move 500 steps in clockwise direction
-    stepper_motor.step(500)
-    sleep(0.5) # stop for a while
+    stepper_motor.step(-300)
+    sleep(5) # stop for a while
+    stepper_motor.step(300)
+    sleep(5)
     
-    # Move 500 steps in counterclockwise direction
-    stepper_motor.step(-500)
-    sleep(0.5) # stop for a while
-    
-    # Go to a specific position (in steps)
-    stepper_motor.step_until(2000)
-    sleep(0.5) # stop for a while       
-    
-    # Go to a specific position (angle, maximum is 359, otherwise it will spin indefinetely)
-    stepper_motor.step_until_angle(359)
-    sleep(0.5) # stop for a while
-    
-    # Force a direction using the dir paramter
-    stepper_motor.step_until(2000, dir=-1)
-    sleep(0.5) # stop for a while 
