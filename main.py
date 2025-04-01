@@ -40,8 +40,8 @@ import time
 
 # Pins according the schematic https://heltec.org/project/wifi-kit-32/
 # Replace with proper scl and sda pins
-i2c = I2C(1, scl=Pin(3), sda=Pin(2))
-
+i2c = I2C(22, scl=Pin(26), sda=Pin(27))
+ 
 
 '''
 # Accelerometer / Gyroscope
@@ -65,9 +65,70 @@ ir = ADC(28)
 # You can also use the IR Photodiode as a digital input.
 ir_sensor = []
 
-#Main Code
-#Turn Car around and find the wall behind 
+#Motor Driver Sample Code
+from machine import Pin, PWM
+from time import sleep
 
+# === L298N Motor Driver ===
+# Motor A
+motor_a_in1 = Pin(6, Pin.OUT)
+motor_a_in2 = Pin(7, Pin.OUT)
+motor_a_en = PWM(Pin(8))
+motor_a_en.freq(1000)
+motor_a_correction = 1.0 # Adjust so both motors have same speed
+
+# Motor B
+motor_b_in3 = Pin(4, Pin.OUT)
+motor_b_in4 = Pin(3, Pin.OUT)
+motor_b_en = PWM(Pin(2))
+motor_b_en.freq(1000)
+motor_b_correction = 1.0 # Adjust so both motors have same speed
+
+# Function to control Motor A
+def motor_a(direction = "stop", speed = 0):
+    adjusted_speed = int(speed * motor_a_correction)  # Apply correction
+    if direction == "forward":
+        motor_a_in1.value(0)
+        motor_a_in2.value(1)
+    elif direction == "backward":
+        motor_a_in1.value(1)
+        motor_a_in2.value(0)
+    else:  # Stop
+        motor_a_in1.value(0)
+        motor_a_in2.value(0)
+    motor_a_en.duty_u16(int(adjusted_speed * 65535 / 100))  # Speed: 0-100%
+
+# Function to control Motor B
+def motor_b(direction = "stop", speed = 0):
+    adjusted_speed = int(speed * motor_b_correction)  # Apply correction
+    if direction == "forward":
+        motor_b_in3.value(1)
+        motor_b_in4.value(0)
+    elif direction == "backward":
+        motor_b_in3.value(0)
+        motor_b_in4.value(1)
+    else:  # Stop
+        motor_b_in3.value(0)
+        motor_b_in4.value(0)
+    motor_b_en.duty_u16(int(adjusted_speed * 65535 / 100))  # Speed: 0-100%
+
+#Stepper Motor
+import stepper # must have this file saved on Pico
+from time import sleep
+
+# Define the stepper motor pins
+IN1 = 12
+IN2 = 13
+IN3 = 14
+IN4 = 15
+
+# Initialize the stepper motor
+stepper_motor = stepper.HalfStepMotor.frompins(IN1, IN2, IN3, IN4)
+
+# Set the current position as position 0
+stepper_motor.reset()
+
+#Main Code
 
 while True:
     # Front Sensor
@@ -129,8 +190,9 @@ while True:
     reed_average.append(reed_switch.value())
     if len(reed_average) == 5:
         if sum(reed_average) == 5:
-            print("Payload detected")
             magnet = 1
+            print("Payload detected")
+
         else:
             print("Payload not Detected")
             magnet = 0
@@ -143,8 +205,10 @@ while True:
     if button.value() == 1:
         print("Button Pressed!")
         led.on()
+        limit = 1
     else:
         print("Not Pressed")
+        limit = 0
         led.off()
     
     but.append(button.value())
@@ -175,7 +239,7 @@ while True:
 
     ir_sensor.append(ir.read_u16())
     if len(ir_sensor) == 5:
-        if sum(ir_sensor) < 50000:
+        if sum(ir_sensor) > 40000:
             print("Dropoff Detected")
         else:
             print("Dropoff not detected")
@@ -183,8 +247,6 @@ while True:
         ir_sensor = []
     
     sleep(0.1)
-
-
 
 
 #asasdas
