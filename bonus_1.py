@@ -107,9 +107,8 @@ while True:
         motor_a()
         motor_b()
         print('stop')
-        sg90.move(90) # move to 0 degree postion
+        sg90.move(0) # move to 0 degree postion
         sleep(.1)
-        stepper_motor.step(-300)
         print('pickup')
         break
     else:
@@ -130,9 +129,8 @@ while True:
         motor_a()
         motor_b()
         print('stop')
-        sg90.move(0) # move to 0 degree postion
+        sg90.move(90) # move to 0 degree postion
         sleep(.1)
-        stepper_motor.step(300)
         print('drop')
         break
 

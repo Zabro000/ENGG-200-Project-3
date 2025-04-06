@@ -21,11 +21,11 @@ average_left = []
 
 # === L298N Motor Driver ===
 # Motor A
-motor_a_in1 = Pin(6, Pin.OUT)
-motor_a_in2 = Pin(9, Pin.OUT)
-motor_a_en = PWM(Pin(8))
+motor_a_in1 = Pin(13, Pin.OUT)
+motor_a_in2 = Pin(15, Pin.OUT)
+motor_a_en = PWM(Pin(14))
 motor_a_en.freq(1000)
-motor_a_correction = 1.0 # Adjust so both motors have same speed
+motor_a_correction = .96 # Adjust so both motors have same speed
 
 # Motor B
 motor_b_in3 = Pin(4, Pin.OUT)
@@ -62,14 +62,12 @@ def motor_b(direction = "stop", speed = 0):
         motor_b_in4.value(0)
     motor_b_en.duty_u16(int(adjusted_speed * 65535 / 100))  # Speed: 0-100%
 
-sleep(10)
+sleep(5)
 
 # Example
 # turn to start the sequence
 
 front_dis = 100
-right_dis = 5
-left_dis = 4
 # find the distance from the wall once turned around
 while True:
     # Front Sensor
@@ -88,7 +86,7 @@ while True:
         print('ERROR getting distance:', ex)
         break
     
-    if front_dis > 15:
+    if front_dis > 25:
         motor_a('forward', 50)
         motor_b('forward', 50)
         print('go to wall')

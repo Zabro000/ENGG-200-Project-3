@@ -1,6 +1,3 @@
-from machine import Pin, PWM
-from time import sleep
-
 # Find the average distances for the front, right, and left sensors
 from hcsr04 import HCSR04 # Must have this library saved on Pico to work
 from time import sleep
@@ -15,14 +12,49 @@ sensor_r = HCSR04(trigger_pin=19, echo_pin=18)
 #Sensor Left
 sensor_l = HCSR04(trigger_pin=17, echo_pin=16)
 
-average_front = []
-average_right = []
-average_left = []
+# Reed swich on pin 0 using internal pull down resistor, other wire of switch connects to 3.3V
+reed_switch = Pin(0, Pin.IN, Pin.PULL_DOWN)
+led = Pin('LED', Pin.OUT)
+reed_average = []
+
+# Servos 
+from servo import Servo # Save this file on pico
+
+servo_reed = Servo(Pin(22))
+
+servo_payload = Servo(Pin(22))
+
+from machine import Pin
+from time import sleep
+
+# Initialize input with internal pull down resistor on pin 10
+# When using internal pull down resistor on Pico, pin will have logic level 1 (3.3 V) when button pushed and 0 when released
+# FOr internal pull up resistor, pin will have logic level 0 when button pushed and 1 (3.3 V) when released
+#ssss
+button = Pin(10, Pin.IN, Pin.PULL_DOWN)
+
+# Initialize on board LED
+led = Pin('LED', Pin.OUT)
+but = []
+
+from machine import ADC
+from time import sleep
+
+# IR Photodiode on analog pin 28
+# NOTE: It may help to use Thonny's built in plotter to see how the values change. Find it under 'View'
+
+ir = ADC(28)
+# You can also use the IR Photodiode as a digital input.
+ir_sensor = []
+
+#Motor Driver Sample Code
+from machine import Pin, PWM
+from time import sleep
 
 # === L298N Motor Driver ===
 # Motor A
 motor_a_in1 = Pin(6, Pin.OUT)
-motor_a_in2 = Pin(9, Pin.OUT)
+motor_a_in2 = Pin(7, Pin.OUT)
 motor_a_en = PWM(Pin(8))
 motor_a_en.freq(1000)
 motor_a_correction = 1.0 # Adjust so both motors have same speed
@@ -62,33 +94,237 @@ def motor_b(direction = "stop", speed = 0):
         motor_b_in4.value(0)
     motor_b_en.duty_u16(int(adjusted_speed * 65535 / 100))  # Speed: 0-100%
 
-sleep(10)
+#Stepper Motor
+import stepper # must have this file saved on Pico
+from time import sleep
 
-lim = 0
-magnet = 0
-# Example
-# turn to start the sequence
-motor_a('forward', 50)
-print('move')
-sleep(1.4)
-motor_a()
-print("stop")
-sleep(2)
+# Define the stepper motor pins
+IN1 = 12
+IN2 = 13
+IN3 = 14
+IN4 = 15
 
+# Initialize the stepper motor
+stepper_motor = stepper.HalfStepMotor.frompins(IN1, IN2, IN3, IN4)
+
+# Set the current position as position 0
+stepper_motor.reset()
+
+# Variables
+speed = 35
+average_length_1 = 10
+average_front = []
+average_right = []
+average_left = []
+
+# Preset distances
 front_dis = 100
-right_dis = 5
-left_dis = 4
-# find the distance from the wall once turned around
+right_dis = 1
+left_dis = 25
+
+
+def turn_left():
+    # Turn Left
+    motor_a('forward', speed)
+    sleep(.727)
+    print('turn left')
+    motor_a()
+    sleep(2)
+    return
+
+def turn_right():
+    # Turn Right
+    motor_b('forward', speed)
+    sleep(.727)
+    print('Turn Right')
+    motor_b()
+    sleep(2)
+    return
+
+# Code for wall folowing
+def find_payload():
+    while True:
+        #Limit Switch
+        # if button pushed turn on LED
+        if button.value() == 1:
+            print("Button Pressed!")
+            led.on()
+            limit = 1
+        else:
+            print("Not Pressed")
+            limit = 0
+            led.off()
+        
+        but.append(button.value())
+        if len(but) == 5:
+            if sum(but) == 5:
+                print("Payload on")
+                payload_stay = 1
+            but = []
+
+        # Front Sensor
+        try:
+            distance = sensor.distance_cm()
+            print('Distance:', distance, 'cm')
+            average_front.append(distance)
+        
+            if len(average_front) == average_length_1:
+                front_dis = sum(average_front) / average_length_1
+                print(front_dis, "average front")
+                average_front = []
+
+        except OSError as ex:
+            print('ERROR getting distance:', ex)
+            break
+        
+        sleep(0.1) # Short delay
+
+        # Right Sensor
+        try:
+            distance_r = sensor_r.distance_cm()
+            print('Distance Right:', distance_r, 'cm')
+            average_right.append(distance_r)
+
+            if len(average_right) == 10:
+                right_dis = sum(average_right) / 10
+                print(right_dis, "average right")
+                average_right = []
+
+        except OSError as ex:
+            print('ERROR getting distance:', ex)
+            break
+
+        # Left Sensor
+        '''
+        try:
+            distance_l = sensor_l.distance_cm()
+            print('Distance Left:', distance_l, 'cm')
+            sleep(0.01) # sensor doesn't work well without delay
+            average_left.append(distance_l)
+
+            if len(average_left) == 5:
+                left_dis = sum(average_left) / 5
+                print(left_dis, "average left")
+                average_left = []
+        '''
+
+        # Photodiode
+        ir_sensor.append(ir.read_u16())
+        if len(ir_sensor) == 5:
+            if sum(ir_sensor) > 40000:
+                print("Dropoff Detected")
+                reed = 1
+            else:
+                print("Dropoff not detected")
+                reed = 0
+
+            ir_sensor = []
+
+        reed_average.append(reed_switch.value())
+
+        if len(reed_average) == 5:
+            if sum(reed_average) == 5:
+                magnet = 1
+                print("Payload detected")
+
+            else:
+                print("Payload not Detected")
+                magnet = 0
+            reed_average = []
+        
+        sleep(0.05)  # Short delay for all sensors
+
+        if limit == 0 or reed_switch == 0:
+            if front_dis > 25:
+                motor_a('forward', speed)
+                motor_b('forward', speed)
+
+            elif front_dis < 25 and right_dis < 25:
+                motor_b()
+                motor_a()
+                print('stop')
+                sleep(2)
+                turn_left()
+
+            elif front_dis < 25 and right_dis > 25:
+                motor_b()
+                motor_a()
+                print('stop')
+                sleep(2)
+                turn_right()
+
+            else:
+                motor_a()
+                motor_b()
+                print('Error')
+                return
+
+        else:
+            return
+
+def pickup():
+    # servo with reed pull back
+    servo_reed.move(0)
+    print('move reed our of the way')
+    sleep(1)
+    # drive backward for 1 second
+    motor_a('backward', speed)
+    motor_b('backward', speed)
+    print('move backward')
+    sleep(1)
+
+    # lower arm by servo pushing up
+    servo_payload.move(90)
+    print('push the arm down')
+    sleep(1)
+
+    # drive til limit switch is hit
+    but = []
+    while True:
+        but.append(button.value())
+        if len(but) == 5:
+            if sum(but) == 5:
+                print("Payload on")
+                motor_a()
+                motor_b()
+                print('stop')
+                break
+                
+            else:
+                print('Payload not on')
+                motor_a('forward', 30)
+                motor_b('forward', 30)
+                print('go forward')
+            but = []
+        sleep(.001)
+
+    # stepper motor rotate back and pickup
+    servo_payload.move(0)
+    print('move servo for payload out the way')
+    sleep(1)
+    stepper_motor.step(-300)
+    print('pickup the pay load')
+    return
+    
+
+# Main Code
+# Find the wall behind us and turn onto the wall for wall-following
+sleep(5)
+motor_b('forward', speed)
+print('face the wall')
+sleep(1.455)
+motor_b()
+
 while True:
     # Front Sensor
     try:
         distance = sensor.distance_cm()
         print('Distance:', distance, 'cm')
-        sleep(0.01) # sensor doesn't work well without delay
+        sleep(0.005) # sensor doesn't work well without delay
         average_front.append(distance)
     
-        if len(average_front) == 5:
-            front_dis = sum(average_front) / 5
+        if len(average_front) == 10:
+            front_dis = sum(average_front) / 10
             print(front_dis, "average front")
             average_front = []
 
@@ -96,101 +332,19 @@ while True:
         print('ERROR getting distance:', ex)
         break
     
-    if front_dis > 6:
+    if front_dis < 28:
         motor_a('forward', 50)
         motor_b('forward', 50)
-        print('go to wall')
-
-    else:
+        print('get to wall')
+    else: 
         motor_a()
         motor_b()
-        sleep(2)
         print('at wall')
-        break
 
-# turn to start the sequence
-motor_a('forward', 50)
-sleep(.7)
-motor_a()
-print('turn left')
+# Not done for pre-comp
 
+# Main Code P.2
 while True:
-    try:
-        distance = sensor.distance_cm()
-        print('Distance:', distance, 'cm')
-        sleep(0.1) # sensor doesn't work well without delay
-        average_front.append(distance)
-
-        if len(average_front) == 5:
-            front_dis = sum(average_front) / 5
-            print(front_dis, "average front")
-            average_front = []
-
-    except OSError as ex:
-        print('ERROR getting distance:', ex)
-        break
-
-    #Right Sensor
-    try:
-        distance_r = sensor_r.distance_cm()
-        print('Distance_right:', distance_r, 'cm')
-        sleep(0.1) # sensor doesn't work well without delay
-        average_right.append(distance_r)
-
-        if len(average_right) == 5:
-            right_dis = sum(average_right) / 5
-            print(right_dis, "average right")
-            average_right = []
-
-    except OSError as ex:
-        print('ERROR getting distance:', ex)
-        break
-
-    #Left Sensor
-    try:
-        distance_l = sensor_l.distance_cm()
-        print('Distance_left:', distance_l, 'cm')
-        sleep(0.1) # sensor doesn't work well without delay
-        average_left.append(distance_l)
-
-        if len(average_left) == 5:
-            left_dis = sum(average_left) / 5
-            print(left_dis, "average left")
-            average_left = []
-
-    except OSError as ex:
-        print('ERROR getting distance:', ex)
-        break
-    
-    if lim == 0 and magnet == 0:
-        if front_dis > 10:
-            """if right_dis > 5:
-                motor_a('forward', 55)
-                motor_b('forward', 45)
-            elif right_dis < 5:
-                motor_a('forward', 45)
-                motor_b('forward', 55)
-                """
-            
-            motor_a('forward', 50)
-            motor_b('forward', 50)
-            print('forward')
-            
-        elif right_dis > 15:
-            motor_a('forward', 50)
-            sleep(.5)
-            motor_a()
-            sleep(.5)
-            print("turn right")
-            
-        elif left_dis > 5 and front_dis < 10:
-            motor_a()
-            motor_b()
-            sleep(.5)
-            motor_b('forward', 50)
-            sleep(.5)
-            motor_b()
-            print('turn left')
-                
-      
-
+    find_payload()
+    pickup()
+    break
