@@ -20,11 +20,11 @@ reed_average = []
 # Servos 
 from servo import Servo # Save this file on pico
 
-servo_reed = Servo(Pin(14))
+servo_reed = Servo(Pin(15))
 
 servo_payload = Servo(Pin(22))
 
-servo_step = Servo(Pin(20))
+servo_step = Servo(Pin(10))
 
 from machine import Pin
 from time import sleep
@@ -145,8 +145,13 @@ def turn_right():
 def go_straight():
     motor_a('forward', speed)
     motor_b('forward', speed)
-    sleep(.4)
+    sleep(.5)
     
+def go_straight1():
+    motor_a('forward', speed)
+    motor_b('forward', speed)
+    sleep(1)
+
 def stop_2():
     motor_a()
     motor_b()
@@ -173,6 +178,9 @@ def go_to_payload():
     front_dis = 50
     right_dis = 15
     i = 0
+    reed = 0 
+    ir = 0
+
     while True:
         #Limit Switch
         # if button pushed turn on LED
@@ -186,6 +194,7 @@ def go_to_payload():
             led.off()
         
         but.append(button.value())
+
         if len(but) == 5:
             if sum(but) == 5:
                 print("Payload on")
@@ -253,17 +262,17 @@ def go_to_payload():
 
         if len(reed_average) == 5:
             if sum(reed_average) == 5:
-                magnet = 1
+                reed = 1
                 print("Payload detected")
 
             else:
                 print("Payload not Detected")
-                magnet = 0
+                reed = 0
             reed_average = []
         
         sleep(0.002)  # Short delay for all sensors
 
-        if reed_switch == 0:
+        if reed == 0:
             if front_dis >= 19 and right_dis <= 30:
                 if right_dis >= 12.5 and right_dis <= 17.5:
                     motor_a('forward', speed)
@@ -271,10 +280,10 @@ def go_to_payload():
                     print('go straight')
                 elif right_dis > 17.5:
                     motor_a('forward', 35)
-                    motor_b('forward', 36)
+                    motor_b('forward', 38)
                     print('drift right')
                 else:
-                    motor_a('forward', 36)
+                    motor_a('forward', 38)
                     motor_b('forward', 35)
                     print('drift left')
 
@@ -361,7 +370,7 @@ def pickup():
     servo_step(18)
     print('pickup the pay load')
     sleep(1)
-    go_straight()
+    go_straight1()
     sleep(1)
     stop()
     return
@@ -376,6 +385,9 @@ def go_to_drop():
     front_dis = 50
     right_dis = 15
     i = 0
+    reed = 0 
+    ir = 0
+
     while True:
         #Limit Switch
         # if button pushed turn on LED
@@ -445,10 +457,10 @@ def go_to_drop():
         if len(ir_sensor) == 5:
             if sum(ir_sensor) > 40000:
                 print("Dropoff Detected")
-                reed = 1
+                ir = 1
             else:
                 print("Dropoff not detected")
-                reed = 0
+                ir = 0
 
             ir_sensor = []
 
@@ -456,28 +468,28 @@ def go_to_drop():
 
         if len(reed_average) == 5:
             if sum(reed_average) == 5:
-                magnet = 1
+                reed = 1
                 print("Payload detected")
 
             else:
                 print("Payload not Detected")
-                magnet = 0
+                reed = 0
             reed_average = []
         
         sleep(0.002)  # Short delay for all sensors
 
-        if reed == 0:
+        if ir == 0:
             if front_dis >= 19 and right_dis <= 30:
-                if right_dis >= 12.5 and right_dis <= 17.5:
+                if right_dis >= 12 and right_dis <= 18:
                     motor_a('forward', speed)
                     motor_b('forward', speed)
                     print('go straight')
                 elif right_dis > 17.5:
                     motor_a('forward', 35)
-                    motor_b('forward', 36)
+                    motor_b('forward', 38)
                     print('drift right')
                 else:
-                    motor_a('forward', 36)
+                    motor_a('forward', 38)
                     motor_b('forward', 35)
                     print('drift left')
 

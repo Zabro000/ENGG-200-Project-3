@@ -20,9 +20,11 @@ reed_average = []
 # Servos 
 from servo import Servo # Save this file on pico
 
-servo_reed = Servo(Pin(10))
+servo_reed = Servo(Pin(15))
 
 servo_payload = Servo(Pin(22))
+
+servo_step = Servo(Pin(10))
 
 from machine import Pin
 from time import sleep
@@ -57,7 +59,7 @@ motor_a_in1 = Pin(7, Pin.OUT)
 motor_a_in2 = Pin(9, Pin.OUT)
 motor_a_en = PWM(Pin(8))
 motor_a_en.freq(1000)
-motor_a_correction = .99 # Adjust so both motors have same speed
+motor_a_correction = .94 # Adjust so both motors have same speed
 
 # Motor B
 motor_b_in3 = Pin(4, Pin.OUT)
@@ -121,27 +123,11 @@ front_dis = 100
 right_dis = 1
 left_dis = 25
 
-def go_straight():
-    motor_a('forward', 35)
-    motor_b('forward', 35)
-    print('go straight')
-    sleep(5)
-    
-def go_backward():
-    motor_a('backward', 35)
-    motor_b('backward', 35)
-    print('back')
-    sleep(1)
 
-def stop():
-    motor_a()
-    motor_b()
-    print('stop')
-    
 def turn_left():
     # Turn Left
     motor_a('forward', speed)
-    sleep(.82)
+    sleep(.72)
     print('turn left')
     motor_a()
     sleep(2)
@@ -150,14 +136,39 @@ def turn_left():
 def turn_right():
     # Turn Right
     motor_b('forward', speed)
-    sleep(.8)
+    sleep(.74)
     print('Turn Right')
     motor_b()
     sleep(2)
     return
 
-# Code for wall folowing
-def go_to_payload():
+def go_straight():
+    motor_a('forward', speed)
+    motor_b('forward', speed)
+    sleep(.5)
+    
+def go_straight1():
+    motor_a('forward', speed)
+    motor_b('forward', speed)
+    sleep(5)
+
+    
+def stop():
+    motor_a()
+    motor_b()
+    print('stop')
+
+def pickup():
+    # stepper motor rotate back and pickup
+    servo_payload.move(0)
+    print('move servo for payload out the way')
+    sleep(1)
+    servo_step(18)
+    print('pickup the pay load')
+    sleep(1)
+    return
+
+def go_to_drop():
     but = []
     average_front = []
     average_right = []
@@ -166,6 +177,10 @@ def go_to_payload():
     reed_average = []
     front_dis = 50
     right_dis = 15
+    i = 0
+    reed = 0 
+    ir = 0
+
     while True:
         #Limit Switch
         # if button pushed turn on LED
@@ -235,10 +250,10 @@ def go_to_payload():
         if len(ir_sensor) == 5:
             if sum(ir_sensor) > 40000:
                 print("Dropoff Detected")
-                reed = 1
+                ir = 1
             else:
                 print("Dropoff not detected")
-                reed = 0
+                ir = 0
 
             ir_sensor = []
 
@@ -246,19 +261,19 @@ def go_to_payload():
 
         if len(reed_average) == 5:
             if sum(reed_average) == 5:
-                magnet = 1
+                reed = 1
                 print("Payload detected")
 
             else:
                 print("Payload not Detected")
-                magnet = 0
+                reed = 0
             reed_average = []
         
         sleep(0.002)  # Short delay for all sensors
 
-        if limit == 0 or reed_switch == 0:
-            if front_dis >= 22 and right_dis <= 30:
-                if right_dis >= 12.5 and right_dis <= 17.5:
+        if ir == 0:
+            if front_dis >= 19 and right_dis <= 30:
+                if right_dis >= 12 and right_dis <= 18:
                     motor_a('forward', speed)
                     motor_b('forward', speed)
                     print('go straight')
@@ -271,7 +286,7 @@ def go_to_payload():
                     motor_b('forward', 35)
                     print('drift left')
 
-            elif front_dis < 22 and right_dis <= 30:
+            elif front_dis < 20 and right_dis <= 30:
                 motor_b()
                 motor_a()
                 print('stop')
@@ -280,14 +295,25 @@ def go_to_payload():
                 front_dis = 50
                 right_dis = 5
 
-            elif right_dis > 22:
-                motor_b()
-                motor_a()
+            elif right_dis > 20:
+                stop()
                 print('stop')
                 sleep(2)
+                if i == 0:
+                    go_straight_2()
+                    print('go')
+                    stop()
+                    sleep(1)
+                    
                 turn_right()
-                right_dis = 5
+                stop()
+                sleep(1)
+                go_straight()
+                print('go')
+                stop()
+                right_dis = 15
                 front_dis = 50
+                i+= 1
 
             else:
                 motor_a()
@@ -296,30 +322,66 @@ def go_to_payload():
                 return
 
         else:
+            stop()
             return
 
-def pickup():
-    # lower arm by servo pushing up
-    servo_payload.move(0)
+def drop():
+    servo_step(0)
+    servo_payload(90)
     sleep(1)
-    print('push the arm down')
-
-    servo_reed.move(18)
-    print('pickup the pay load')
-    return
-
-def dropoff():
-    servo_reed.move(0)
+    motor_a('backward', speed)
+    motor_b('backward', speed)
     sleep(2)
-    servo_payload.move(90)
+
+# Main Code
+# Find the wall behind us and turn onto the wall for wall-following
+sleep(5)
+# Main Code
+# Find the wall behind us and turn onto the wall for wall-following
+sleep(5)
+motor_b('forward', speed)
+print('face the wall')
+sleep(1.52)
+motor_b()
+sleep(1)
+print('stop')
+
+front_dis = 50
+while True:
+    # Front Sensor
+    try:
+        distance = sensor.distance_cm()
+        print('Distance:', distance, 'cm')
+        sleep(0.005) # sensor doesn't work well without delay
+        average_front.append(distance)
     
-    go_backward()
+        if len(average_front) == 10:
+            front_dis = sum(average_front) / 10
+            print(front_dis, "average front")
+            average_front = []
+
+    except OSError as ex:
+        print('ERROR getting distance:', ex)
+        break
     
+    if front_dis >= 26:
+        motor_a('forward', 50)
+        motor_b('forward', 50)
+        print('get to wall')
+        
+    else: 
+        motor_a()
+        motor_b()
+        sleep(2)
+        print('at wall')
+        break
+
+turn_left()
+sleep(2)
+
 # Main Code P.2
 while True:
     pickup()
-    go_straight()
-    stop()
-    dropoff()
+    go_straight1()
+    drop()
     break
-
