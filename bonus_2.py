@@ -57,7 +57,7 @@ motor_a_in1 = Pin(7, Pin.OUT)
 motor_a_in2 = Pin(9, Pin.OUT)
 motor_a_en = PWM(Pin(8))
 motor_a_en.freq(1000)
-motor_a_correction = .94 # Adjust so both motors have same speed
+motor_a_correction = .95 # Adjust so both motors have same speed
 
 # Motor B
 motor_b_in3 = Pin(4, Pin.OUT)
@@ -125,7 +125,7 @@ left_dis = 25
 def turn_left():
     # Turn Left
     motor_a('forward', speed)
-    sleep(.72)
+    sleep(.67)
     print('turn left')
     motor_a()
     sleep(2)
@@ -134,7 +134,7 @@ def turn_left():
 def turn_right():
     # Turn Right
     motor_b('forward', speed)
-    sleep(.74)
+    sleep(.67)
     print('Turn Right')
     motor_b()
     sleep(2)
@@ -144,6 +144,11 @@ def go_straight():
     motor_a('forward', speed)
     motor_b('forward', speed)
     sleep(.4)
+    
+def go_straight1():
+    motor_a('forward', speed)
+    motor_b('forward', speed)
+    sleep(.75)
     
 def stop_2():
     motor_a()
@@ -298,9 +303,15 @@ def go_to_payload():
                 turn_right()
                 stop()
                 sleep(1)
-                go_straight()
-                print('go')
-                stop()
+                
+                if i == 0:
+                    go_straight1()
+                    stop()
+                else:
+                    go_straight()
+                    print('go')
+                    stop()
+                    
                 right_dis = 15
                 front_dis = 50
                 i+= 1
@@ -321,5 +332,3 @@ sleep(5)
 while True:
     go_to_payload()
     break
-
-
